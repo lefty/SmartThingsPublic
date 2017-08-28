@@ -398,8 +398,15 @@ def toggle(devices) {
 def dimToggle(devices, dimLevel) {
 	log.debug "dimToggle: $devices = ${devices*.currentValue('switch')}"
 
-	if (devices*.currentValue('switch').contains('on')) devices.off()
-	else devices.setLevel(dimLevel)
+	if (devices*.currentValue('switch').contains('on')) {
+		if (devices*.currentValue('level') != dimLevel) {
+			devices.setLevel(dimLevel)
+		} else {
+			devices.off()
+		}
+	}
+	else 
+		devices.setLevel(dimLevel)
 }
 
 def changeMode(mode) {
