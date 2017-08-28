@@ -16,7 +16,7 @@
  *	Date: 2014-5-21
  */
 definition(
-    name: "Button Controller+",
+    name: "Button Controller Plus",
     namespace: "lefty",
     author: "Jeffrey Hartmann",
     description: "Control devices with buttons like the Aeon Labs Minimote",
