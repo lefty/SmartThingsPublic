@@ -12,13 +12,13 @@
  *
  *	Button Controller
  *
- *	Author: SmartThings
+ *	Author: SmartThings, modified by Jeffrey Hartmann with code from Bruce Ravenel
  *	Date: 2014-5-21
  */
 definition(
-    name: "Button Controller",
-    namespace: "smartthings",
-    author: "SmartThings",
+    name: "Button Controller+",
+    namespace: "lefty",
+    author: "Jeffrey Hartmann",
     description: "Control devices with buttons like the Aeon Labs Minimote",
     category: "Convenience",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/MyApps/Cat-MyApps.png",
@@ -56,6 +56,10 @@ def selectButton() {
 
 			input "modes", "mode", title: "Only when mode is", multiple: true, required: false
 		}
+        
+        section() {
+        	label title: "Assign a name:", required: false
+        }
 	}
 }
 
@@ -102,9 +106,43 @@ def configureButton8() {
 
 def getButtonSections(buttonNumber) {
 	return {
-		section("Lights") {
+		section("Lights to Toggle") {
 			input "lights_${buttonNumber}_pushed", "capability.switch", title: "Pushed", multiple: true, required: false
 			input "lights_${buttonNumber}_held", "capability.switch", title: "Held", multiple: true, required: false
+		}
+		section("Dimmers to Toggle") {
+			input "lightsDT_${buttonNumber}_pushed", "capability.switchLevel", title: "Pushed", multiple: true, required: false
+			input "lightsDTVal_${buttonNumber}_pushed", "number", title: "Dim Level", required: false, description: "0 to 99"
+			input "lightsDT_${buttonNumber}_held", "capability.switchLevel", title: "Held", multiple: true, required: false
+			input "lightsDTVal_${buttonNumber}_held", "number", title: "Dim Level", required: false, description: "0 to 99"
+		}
+		section("Lights to Turn On") {
+			input "lightOn_${buttonNumber}_pushed", "capability.switch", title: "Pushed", multiple: true, required: false
+			input "lightOn_${buttonNumber}_held", "capability.switch", title: "Held", multiple: true, required: false
+		}
+		section("Lights to Turn Off") {
+			input "lightOff_${buttonNumber}_pushed", "capability.switch", title: "Pushed", multiple: true, required: false
+			input "lightOff_${buttonNumber}_held", "capability.switch", title: "Held", multiple: true, required: false
+		}
+		section("Dimmers to DimLevel 1") {
+			input "lightDim_${buttonNumber}_pushed", "capability.switchLevel", title: "Pushed", multiple: true, required: false
+			input "lightVal_${buttonNumber}_pushed", "number", title: "DimLevel 1", multiple: false, required: false, description: "0 to 99"
+			input "lightDim_${buttonNumber}_held", "capability.switchLevel", title: "Held", multiple: true, required: false
+			input "lightVal_${buttonNumber}_held", "number", title: "DimLevel 1", multiple: false, required: false, description: "0 to 99"
+		}
+		section("Dimmers to DimLevel 2") {
+			input "lightD2m_${buttonNumber}_pushed", "capability.switchLevel", title: "Pushed", multiple: true, required: false
+			input "lightV2l_${buttonNumber}_pushed", "number", title: "DimLevel 2", multiple: false, required: false, description: "0 to 99"
+			input "lightD2m_${buttonNumber}_held", "capability.switchLevel", title: "Held", multiple: true, required: false
+			input "lightV2l_${buttonNumber}_held", "number", title: "DimLevel 2", multiple: false, required: false, description: "0 to 99"
+		}
+		section("Fan to Adjust - Low, Medium, High, Off") {
+			input "fanAdjust_${buttonNumber}_pushed", "capability.switchLevel", title: "Pushed", multiple: false, required: false
+			input "fanAdjust_${buttonNumber}_held", "capability.switchLevel", title: "Held", multiple: false, required: false
+		}
+		section("Shade to Adjust - Up, Down, or Stop") {
+			input "shadeAdjust_${buttonNumber}_pushed", "capability.doorControl", title: "Pushed", multiple: false, required: false
+			input "shadeAdjust_${buttonNumber}_held", "capability.doorControl", title: "Held", multiple: false, required: false
 		}
 		section("Locks") {
 			input "locks_${buttonNumber}_pushed", "capability.lock", title: "Pushed", multiple: true, required: false
@@ -132,7 +170,8 @@ def getButtonSections(buttonNumber) {
         }
 
 		section("Custom Message") {
-			input "textMessage_${buttonNumber}", "text", title: "Message", required: false
+			input "textMessage_${buttonNumber}_pushed", "text", title: "Pushed", required: false
+			input "textMessage_${buttonNumber}_held", "text", title: "Held", required: false
 		}
 
         section("Push Notifications") {
@@ -166,6 +205,16 @@ def configured() {
 
 def buttonConfigured(idx) {
 	return settings["lights_$idx_pushed"] ||
+    	settings["lightsDT_$idx_pushed"] ||
+        settings["lightsDTVal_$idx_pushed"] ||
+    	settings["lightOn_$idx_pushed"] ||
+    	settings["lightOff_$idx_pushed"] ||
+        settings["lightDim_$idx_pushed"] ||
+        settings["lightVal_$idx_pushed"] ||
+        settings["lightD2m_$idx_pushed"] ||
+        settings["lightV2l_$idx_pushed"] ||
+        settings["fanAdjust_$idx_pushed"] ||
+        settings["shadeAdjust_$idx_pushed"] ||
 		settings["locks_$idx_pushed"] ||
 		settings["sonos_$idx_pushed"] ||
 		settings["mode_$idx_pushed"] ||
@@ -212,6 +261,30 @@ def executeHandlers(buttonNumber, value) {
 	def lights = find('lights', buttonNumber, value)
 	if (lights != null) toggle(lights)
 
+	def lightsDT = find('lightsDT', buttonNumber, value)
+	def dimTVal = find('lightsDTVal', buttonNumber, value)
+	if (lightsDT != null) dimToggle(lightsDT, dimTVal)
+
+	def lights1 = find('lightOn', buttonNumber, value)
+	if (lights1 != null) turnOn(lights1)
+
+	def lights2 = find('lightOff', buttonNumber, value)
+	if (lights2 != null) turnOff(lights2)
+
+	def lights3 = find('lightDim', buttonNumber, value)
+	def dimval3 = find('lightVal', buttonNumber, value)
+	if (lights3 != null) turnDim(lights3,dimval3)
+
+	def lights4 = find('lightD2m', buttonNumber, value)
+	def dimval4 = find('lightV2l', buttonNumber, value)
+	if (lights4 != null) turnDim(lights4,dimval4)
+
+	def fan = find('fanAdjust', buttonNumber, value)
+	if (fan != null) adjustFan(fan)
+    
+	def shade = find('shadesAdjust', buttonNumber, value)
+	if (shade != null) adjustShade(shade)
+
 	def locks = find('locks', buttonNumber, value)
 	if (locks != null) toggle(locks)
 
@@ -224,7 +297,7 @@ def executeHandlers(buttonNumber, value) {
 	def phrase = find('phrase', buttonNumber, value)
 	if (phrase != null) location.helloHome.execute(phrase)
 
-	def textMessage = findMsg('textMessage', buttonNumber)
+	def textMessage = findMsg('textMessage', buttonNumber, value)
 
 	def notifications = find('notifications', buttonNumber, value)
 	if (notifications?.toBoolean()) sendPush(textMessage ?: "Button $buttonNumber was pressed" )
@@ -246,14 +319,57 @@ def find(type, buttonNumber, value) {
 	return pref
 }
 
-def findMsg(type, buttonNumber) {
-	def preferenceName = type + "_" + buttonNumber
+def findMsg(type, buttonNumber, value) {
+	def preferenceName = type + "_" + buttonNumber + "_" + value
 	def pref = settings[preferenceName]
 	if(pref != null) {
 		log.debug "Found: $pref for $preferenceName"
 	}
 
 	return pref
+}
+
+def turnOn(devices) {
+	log.debug "turnOn: $devices = ${devices*.currentSwitch}"
+
+	devices.on()
+}
+
+def turnOff(devices) {
+	log.debug "turnOff: $devices = ${devices*.currentSwitch}"
+
+	devices.off()
+}
+
+def turnDim(devices, level) {
+	log.debug "turnDim: $devices = ${devices*.currentSwitch}"
+
+	devices.setLevel(level)
+}
+
+def adjustFan(device) {
+	log.debug "adjust: $device = ${device.currentLevel}"
+    
+	def currentLevel = device.currentLevel
+
+	if(device.currentSwitch == 'off') device.setLevel(15)
+	else if (currentLevel < 34) device.setLevel(50)
+  	else if (currentLevel < 67) device.setLevel(90)
+	else device.off()
+}
+
+def adjustShade(device) {
+	log.debug "shades: $device = ${device.currentMotor} state.lastUP = $state.lastshadesUp"
+
+	if(device.currentMotor in ["up","down"]) {
+    	state.lastshadesUp = device.currentMotor == "up"
+    	device.stop()
+    } else {
+    	state.lastshadesUp ? device.down() : device.up()
+//    	if(state.lastshadesUp) device.down()
+//        else device.up()
+        state.lastshadesUp = !state.lastshadesUp
+    }
 }
 
 def toggle(devices) {
@@ -277,6 +393,13 @@ def toggle(devices) {
 	else {
 		devices.on()
 	}
+}
+
+def dimToggle(devices, dimLevel) {
+	log.debug "dimToggle: $devices = ${devices*.currentValue('switch')}"
+
+	if (devices*.currentValue('switch').contains('on')) devices.off()
+	else devices.setLevel(dimLevel)
 }
 
 def changeMode(mode) {
